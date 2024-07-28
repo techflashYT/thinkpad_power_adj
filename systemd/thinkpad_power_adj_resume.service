@@ -1,0 +1,10 @@
+[Unit]
+Description=Restart thinkpad_power_adj on system resume
+After=hibernate.target suspend.target
+
+[Service]
+ExecStart=/bin/sh -c 'systemctl restart thinkpad_power_adj'
+Type=oneshot
+
+[Install]
+WantedBy=hibernate.target suspend.target

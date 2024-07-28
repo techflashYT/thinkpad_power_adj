@@ -1,0 +1,11 @@
+[Unit]
+Description=Dynamically adjust Ryzen-based ThinkPad power limits and fan curves based on AC Power State
+
+[Service]
+ExecStart=/usr/local/bin/thinkpad_power_adj/monitor.sh
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+

@@ -1,0 +1,16 @@
+sensors:
+   - tpacpi:  /proc/acpi/ibm/thermal
+     indices: [0]
+
+fans:
+   - tpacpi:  /proc/acpi/ibm/fan
+
+levels:
+   - [0, 0, 38]
+   - [1, 36, 39]
+   - [2, 38, 40]
+   - [3, 40, 42]
+   - [5, 42, 45]
+   - [6, 45, 50]
+   - [7, 50, 59]
+   - ["level full-speed", 58, 32767]
