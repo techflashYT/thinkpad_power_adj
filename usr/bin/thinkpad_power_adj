@@ -1,0 +1,129 @@
+#!/bin/sh
+
+ver="0.1.0"
+backend_dir="/var/tmp/thinkpad_power_adj"
+
+color=""
+if [ "$(tput colors)" -ge 8 ]; then
+	color=true
+fi
+
+error() {
+	if [ "$color" ]; then printf "\e[1;31m"; fi
+	echo "ERROR: $1"
+	if [ "$color" ]; then printf "\e[0m"; fi
+}
+
+
+usage() {
+	cat << EOF
+thinkpad_power_adj [action] <parameters>
+
+Things in [brackets] are required.  Things listed in <angle brackets> aren't.
+The default command is "show".  Except for "is-running", every command
+requires the backend process to be running.
+
+COMMANDS:
+  show              Show the current state of this program's backend.
+
+  is-running        Shows whether or not the backend program is running.
+
+  usage, help,      Show this help message.  Should return 0, but will
+  -h, --help        return 1 if you've specified an incorrect command or
+                    otherwise have a syntax error of some form.
+
+  set               Set the power profile, of which there 2 modes, battery,
+                    and AC.  There are 3 default profiles,
+                    "performance", "balanced", and "power_saver".  The
+                    default mode on bootup is "balanced", and does not
+                    persist across reboots.  You may create your own
+                    profiles.  Check the man page for documentation on how
+                    to create your own profiles.
+
+  ver, version,     Prints the application's version number
+  --version, -V
+
+
+
+Made by Techflash.  Report bugs to the issues page below.
+EOF
+url="https://github.com/techflashYT/thinkpad_power_adj/issue"
+printf "\e]8;;$url\e\\$url\e]8;;\e\\\\\n"
+}
+
+getInfo() {
+	if ! [ -d /var/tmp/thinkpad_power_adj ]; then
+		running="false"
+		mode="Unavailable"
+		state="Unavailable"
+	else
+		running="true"
+		mode="$(cat $backend_dir/mode)"
+		state="$(cat $backend_dir/pwr_state)"
+	fi
+
+	bat0pct="$(cat /sys/class/power_supply/BAT0/capacity)"
+	rawbat0pwr=$(cat /sys/class/power_supply/BAT0/power_now)
+	bat0pwr="$(echo "scale=2; $rawbat0pwr/1000000" | bc)"
+	if [ -d /sys/class/power_supply/BAT1 ]; then
+		multi_bat="yes"
+		bat1pct="$(cat /sys/class/power_supply/BAT1/capacity)"
+		rawbat1pwr="$(cat /sys/class/power_supply/BAT1/power_now)"
+		bat1pwr="$(echo "scale=2; $rawbat1pwr/1000000" | bc)"
+	fi
+}
+
+doSet() {
+	if [ "$2" = "" ]; then
+		error "Specify something to set"
+		usage
+		exit 1
+	fi
+
+	echo "$2" > "$backend_dir/mode"
+	echo "change_mode" >> "$backend_dir/fifo"
+	sleep 0.5
+
+	if err=$(cat "$backend_dir/error" 2>/dev/null); then
+		rm "$backend_dir/error"
+		error "Error changing mode: $err"
+	fi
+}
+
+doVersion() {
+	echo "thinkpad_power_adj - Version $ver"
+	exit 0
+}
+
+
+doShow() {
+	getInfo
+
+	echo "Backend running: $running"
+	echo "Current power mode: $mode"
+	echo "Current power state: $state"
+	if [ "$multi_bat" ]; then
+		echo "Current battery 0 percentage: ${bat0pct}%"
+		echo "Current battery 0 power draw: ${bat0pwr}W"
+		echo "Current battery 1 percentage: ${bat1pct}%"
+		echo "Current battery 1 power draw: ${bat0pwr}W"
+	fi
+	echo "Current battery percentage: ${bat0pct}%"
+	echo "Current battery power draw: ${bat0pwr}W"
+}
+
+
+case "$1" in
+	"show"|"") doShow "$@" ;;
+	"is-running")
+		if [ "$#" != "1" ]; then
+			error "is-running doesn't take any parameters"
+			usage
+			exit 1
+		fi
+		doIsRunning ;;
+	"usage"|"help"|"-h"|"--help") usage; exit 0 ;;
+	"set") doSet "$@" ;;
+	"ver"|"version"|"--version"|"-V") doVersion ;;
+	*) usage; exit 1 ;;
+esac
