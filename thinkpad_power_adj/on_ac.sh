@@ -1,5 +1,5 @@
 export watt_limit=55
-export temp_limit=80
+export temp_limit=70
 
 ./ryzen_apply.sh
 
