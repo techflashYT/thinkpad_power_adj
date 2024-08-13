@@ -3,7 +3,7 @@ Description=Restart thinkpad_power_adj on system resume
 After=hibernate.target suspend.target
 
 [Service]
-ExecStart=/bin/sh -c 'systemctl restart thinkpad_power_adj'
+ExecStart=/bin/sh -c 'if [ -p /var/tmp/thinkpad_power_adj/fifo ]; then echo sys_resumed > /var/tmp/thinkpad_power_adj/fifo; else systemctl restart thinkpad_power_adj; fi'
 Type=oneshot
 
 [Install]
